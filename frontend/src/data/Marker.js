@@ -1,4 +1,4 @@
-import {HnHMaxZoom, ImageIcon} from "../utils/LeafletCustomTypes";
+import {HnHMaxZoom, ImageIcon, getCustomMarkerIcon} from "../utils/LeafletCustomTypes";
 import * as L from "leaflet";
 
 function detectType(name) {
@@ -23,6 +23,8 @@ export class Marker {
         this.map = markerData.map;
         this.onClick = null;
         this.onContext = null;
+        this.onHoverEnter = null;
+        this.onHoverLeave = null;
         this.tstate = false;
         this.view = false;
     }
@@ -44,16 +46,11 @@ export class Marker {
 
             let isCustom = this.image === "gfx/terobjs/mm/custom";
             let isCave = this.name.toLowerCase() === "cave";
-            let hsz = 9;
+            let isThingwall = this.image === "gfx/terobjs/mm/thingwall";
+            let hsz = isThingwall ? 45 : 18;
 
             if (isCustom && !isCave) {
-                icon = new ImageIcon({
-                    iconUrl: 'gfx/terobjs/mm/custom.png',
-                    iconSize: [21, 23],
-                    iconAnchor: [11, 21],
-                    popupAnchor: [1, 3],
-                    tooltipAnchor: [1, 3]
-                })
+                icon = getCustomMarkerIcon('white');
             } else {
                 let zoom = HnHMaxZoom - this.view.getZoom();
                 let url = `${this.image}.png`;
@@ -66,20 +63,23 @@ export class Marker {
             this.marker = L.marker(position, {icon: icon, riseOnHover: true/*, title: this.name*/});
             let col = "#FFF";
             if (this.type === "quest") {
-                col = "#FDB800";
+                col = "#00cffd";
             } else if (this.type === "thingwall") {
                 col = "#00cffd";
             }
             this.marker.marker = this;
             this.marker.bindTooltip("<div style='color:" + col + ";'><b>" + this.name + "</b></div>", {
-                permanent: false,
+                permanent: true,
                 direction: 'top',
-                sticky: true,
+                sticky: false,
                 opacity: 0.9
             });
+            this.marker.on('mouseover', function (ev) {
+                ev.target.openTooltip();
+            });
             this.marker.on('mouseout', function (ev) {
-                if (ev.target.marker.tstate) {
-                    ev.target.openTooltip();
+                if (!ev.target.marker.tstate) {
+                    ev.target.closeTooltip();
                 }
             });
             // this.marker.bindPopup(this.name);
@@ -90,8 +90,40 @@ export class Marker {
             //     ev.target.closePopup();
             // });
             this.marker.addTo(mapview.markerLayer);
+            if (!this.tstate) {
+                this.marker.closeTooltip();
+            }
             this.marker.on("click", this.callClickCallback.bind(this));
             this.marker.on("contextmenu", this.callContextCallback.bind(this));
+            this.marker.on("mouseover", () => {
+                if (this.onHoverEnter) this.onHoverEnter(this);
+            });
+            this.marker.on("mouseout", () => {
+                if (this.onHoverLeave) this.onHoverLeave(this);
+            });
+        }
+    }
+
+    update(mapview, updated) {
+        let mapChanged = this.map !== updated.map;
+        let imageChanged = this.image !== updated.image;
+        this.name = updated.name;
+        this.text = this.name;
+        this.image = updated.image;
+        this.type = detectType(this.image);
+        this.hidden = updated.hidden;
+        this.map = updated.map;
+        this.position = updated.position;
+
+        if (mapChanged || imageChanged || this.hidden) {
+            this.remove(mapview);
+        }
+        if (!this.marker && !this.hidden && (this.map === mapview.mapid || this.map === mapview.overlayLayer.map)) {
+            this.add(mapview);
+        }
+        if (this.marker) {
+            let position = mapview.map.unproject([this.position.x, this.position.y], HnHMaxZoom);
+            this.marker.setLatLng(position);
         }
     }
 
@@ -154,5 +186,10 @@ export class Marker {
         if (this.onContext != null) {
             this.onContext(e);
         }
+    }
+
+    setHoverCallback(onEnter, onLeave) {
+        this.onHoverEnter = onEnter;
+        this.onHoverLeave = onLeave;
     }
 }

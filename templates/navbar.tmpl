@@ -1,0 +1,25 @@
+<nav style="background-color:#1a1a1a;">
+    <div class="nav-wrapper" style="padding: 0 16px;height:64px;display:flex;align-items:center;justify-content:space-between;">
+        <a href="/" style="display:flex;align-items:center;line-height:normal;padding-left:0;">
+            <img src="/map/haven.jpg" style="height:40px;width:40px;border-radius:4px;object-fit:cover;margin-right:10px;">
+            <span style="font-size:1.5rem;"><span style="color:#FF9800;">Haven</span><span style="color:#fff;">Map</span></span>
+        </a>
+        <ul style="display:flex;align-items:center;list-style:none;margin:0;">
+            <li><a href="/map">Map</a></li>
+            <li><a href="/">Tokens</a></li>
+            <li>
+                <a class="dropdown-trigger" href="#!" data-target="navbar-user-dropdown">{{.Session.Username}}<i class="material-icons right">arrow_drop_down</i></a>
+            </li>
+        </ul>
+    </div>
+</nav>
+<ul id="navbar-user-dropdown" class="dropdown-content">
+    {{if .Session.Auths.Has "admin"}}<li><a href="/admin">Admin</a></li>{{end}}
+    <li><a href="/logout">Logout</a></li>
+</ul>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var els = document.querySelectorAll('.dropdown-trigger');
+        if (window.M) M.Dropdown.init(els, {hover: true, coverTrigger: false});
+    });
+</script>

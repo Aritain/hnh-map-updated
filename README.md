@@ -1,42 +1,41 @@
-# hnh-map
+# HavenMap
 
-> docker build -t "your_tag" https://github.com/Cediner/hnh-map-vuetify.git
+Fork of [Cediner/hnh-map-vuetify](https://github.com/Cediner/hnh-map-vuetify), an automapper server for Haven & Hearth.
 
-> docker run -v /srv/hnh-map:/map -p 80:8080 "your_tag"
+All changes on top of upstream are vibe-coded via Claude.
 
-Source information
+## Setup
 
-Automapper server for HnH, (mostly) compatible with https://github.com/APXEOLOG/hnh-auto-mapper-server
+    docker build -t "your_tag" .
+    docker run -v /srv/hnh-map:/map -p 80:8080 "your_tag"
 
-Docker image can be built from sources, or is available at https://hub.docker.com/r/andyleap/hnh-auto-mapper
-(automatically built by Docker's infrastructure from the github source)
+Listens internally on port 8080, expects `/map` mounted as a volume (database and images stored here). Put it behind whatever reverse proxy you like and point an auto-mapping-capable client at it.
 
-Run it via whatever you feel like, it's listening internally on port 8080 and expects `/map` to be mounted as a volume(database and images are stored here), so something like the below will suffice.
+Login as `admin`/`admin`, go to the admin portal, add your first user with all roles toggled on (you'll need `admin` at least). You'll be logged out and the `admin` account removed — log back in as your new user. Add accounts for everyone else from there, then generate upload tokens.
 
-    docker run -v /srv/hnh-map:/map -p 80:8080 andyleap/hnh-auto-mapper:v-4
+Set the prefix (prepended to tokens, e.g. `http://example.com`) to make client configuration easier.
 
-Set it up under a domain name however you prefer (nginx reverse proxy, traefik, caddy, apache, whatever) and point your auto-mapping supported client at it (like Purus pasta)
+The first client to connect sets the 0,0 grid. Wipe data in the admin portal to reset it.
 
-Only other thing you need to do is setup users and set your zero grid.
+### Roles
 
-Simply login as username admin, password admin, go to the admin portal, and hit "ADD USER". Don't forget to toggle on all the roles (you'll need admin, at least)
+- `map`: view the map
+- `upload`: send character, marker, and tile data
+- `admin`: modify server settings, manage users, wipe data
 
-Once you create your first user, you'll get kicked out and have to log in as it.
-The admin user will be gone at this point. Next you'll want to add users for anyone else, and then you'll need to create your tokens to upload stuff.
+## Changelog
 
-You'll probably want to set the prefix (this gets put at the front of the tokens, and should be something like `http://example.com`) to make it easier to configure clients.
+Changes on top of the upstream fork:
 
-The first client to connect will set the 0,0 grid, but you can wipe the data in the admin portal to reset (and the next client to connect should set a new 0,0 grid)
-
-Roles
-=====
-
-- Map: View the map
-- Upload: Send character, marker, and tile data to the server
-- Admin: modify server settings, create and edit users, wipe data
-
-# New UI
-
-https://vuetifyjs.com/en/
-
-<img src="https://media.discordapp.net/attachments/684797888475562014/835232175283634216/unknown.png" width="700">
+- Roads: draw and label named roads between two points on the map
+- Custom markers: user-placed markers in 8 colors, independent of client uploads
+- Map pings: ctrl+click broadcasts a ping (sound + snackbar + temp marker) to everyone with the map open, over the existing SSE update channel; admin can upload/select the ping sound
+- Cave-entrance icons now render on the map (I'm still not sure if that's something ND fixed on client side or my changes made this work)
+- Fixed a marker-upload bug where a non-JSON hex `id` field from some clients silently dropped the whole marker batch
+- Fixed broken tile zoom resolution (`_getZoomForUrl`) in the tile layer
+- Player markers: pulsing indicator icon, always-on nametag tooltip
+- Thingwall triangulation and general marker/tooltip behavior improvements
+- Dark theme by default
+- Markers and quest tooltips visible by default
+- Closer zoom
+- Better icon handling while zooming

@@ -70,3 +70,41 @@ func (t *mergeTopic) close() {
 	}
 	t.c = t.c[:0]
 }
+
+type Ping struct {
+	Map      int
+	X, Y     int
+	Username string
+}
+
+type pingTopic struct {
+	c  []chan *Ping
+	mu sync.Mutex
+}
+
+func (t *pingTopic) watch(c chan *Ping) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.c = append(t.c, c)
+}
+
+func (t *pingTopic) send(b *Ping) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for i := 0; i < len(t.c); i++ {
+		select {
+		case t.c[i] <- b:
+		default:
+			close(t.c[i])
+			t.c[i] = t.c[len(t.c)-1]
+			t.c = t.c[:len(t.c)-1]
+		}
+	}
+}
+
+func (t *pingTopic) close() {
+	for _, c := range t.c {
+		close(c)
+	}
+	t.c = t.c[:0]
+}

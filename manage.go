@@ -4,12 +4,21 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"go.etcd.io/bbolt"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func clientIP(req *http.Request) string {
+	if fwd := req.Header.Get("X-Forwarded-For"); fwd != "" {
+		return strings.TrimSpace(strings.Split(fwd, ",")[0])
+	}
+	return req.RemoteAddr
+}
 
 func (m *Map) index(rw http.ResponseWriter, req *http.Request) {
 	s := m.getSession(req)
@@ -57,6 +66,7 @@ func (m *Map) login(rw http.ResponseWriter, req *http.Request) {
 	if req.Method == "POST" {
 		u := m.getUser(req.FormValue("user"), req.FormValue("pass"))
 		if u != nil {
+			log.Println("login: ", req.FormValue("user"), " from ", clientIP(req))
 			session := make([]byte, 32)
 			rand.Read(session)
 			http.SetCookie(rw, &http.Cookie{

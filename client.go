@@ -24,6 +24,11 @@ import (
 
 var clientPath = regexp.MustCompile("client/([^/]+)/(.*)")
 
+// Some clients emit a bare hex-looking id (e.g. "id":69332240000005a6) which
+// isn't valid JSON. We don't use this field, so just quote it to make the
+// payload parseable instead of dropping the whole marker batch.
+var badMarkerID = regexp.MustCompile(`"id":([0-9]+[a-fA-F][0-9a-fA-F]*)`)
+
 var UserInfo struct{}
 
 const VERSION = "4"
@@ -111,12 +116,18 @@ func (m *Map) updatePositions(rw http.ResponseWriter, req *http.Request, u User)
 		log.Println("Error reading position update json: ", err)
 		return
 	}
+	// log.Println("DEBUG positionUpdate: raw json: ", string(buf))
 	err = json.Unmarshal(buf, &craws)
 	if err != nil {
 		log.Println("Error decoding position update json: ", err)
 		log.Println("Original json: ", string(buf))
 		return
 	}
+	// log.Println("DEBUG positionUpdate: parsed ", len(craws), " object(s)")
+	// for id, craw := range craws {
+	// 	log.Printf("DEBUG positionUpdate: id=%s name=%q grid=%s x=%d y=%d type=%q\n",
+	// 		id, craw.Name, craw.GridID, craw.Coords.X, craw.Coords.Y, craw.Type)
+	// }
 	groups := groupArr(u.Auths)
 	m.db.View(func(tx *bbolt.Tx) error {
 		grids := tx.Bucket([]byte("grids"))
@@ -190,12 +201,19 @@ func (m *Map) uploadMarkers(rw http.ResponseWriter, req *http.Request) {
 		log.Println("Error reading marker json: ", err)
 		return
 	}
+	buf = badMarkerID.ReplaceAll(buf, []byte(`"id":"$1"`))
+	// log.Println("DEBUG markerUpdate: raw json: ", string(buf))
 	err = json.Unmarshal(buf, &markers)
 	if err != nil {
 		log.Println("Error decoding marker json: ", err)
 		log.Println("Original json: ", string(buf))
 		return
 	}
+	// log.Println("DEBUG markerUpdate: parsed ", len(markers), " marker(s)")
+	// for _, mraw := range markers {
+	// 	log.Printf("DEBUG markerUpdate: marker name=%q grid=%s x=%d y=%d image=%q type=%q color=%q\n",
+	// 		mraw.Name, mraw.GridID, mraw.X, mraw.Y, mraw.Image, mraw.Type, mraw.Color)
+	// }
 	err = m.db.Update(func(tx *bbolt.Tx) error {
 		mb, err := tx.CreateBucketIfNotExists([]byte("markers"))
 		if err != nil {
@@ -213,6 +231,7 @@ func (m *Map) uploadMarkers(rw http.ResponseWriter, req *http.Request) {
 		for _, mraw := range markers {
 			key := []byte(fmt.Sprintf("%s_%d_%d", mraw.GridID, mraw.X, mraw.Y))
 			if grid.Get(key) != nil {
+				// log.Printf("DEBUG markerUpdate: skip dedup name=%q key=%s\n", mraw.Name, key)
 				continue
 			}
 			if mraw.Image == "" {
@@ -236,6 +255,7 @@ func (m *Map) uploadMarkers(rw http.ResponseWriter, req *http.Request) {
 			raw, _ := json.Marshal(m)
 			grid.Put(key, raw)
 			idB.Put(idKey, key)
+			// log.Printf("DEBUG markerUpdate: stored id=%d name=%q image=%q key=%s\n", m.ID, m.Name, m.Image, key)
 		}
 		return nil
 	})

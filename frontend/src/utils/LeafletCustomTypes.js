@@ -37,6 +37,33 @@ export const ImageIcon = L.Icon.extend({
     }
 });
 
+export const PlayerPulseIcon = new L.DivIcon({
+    className: 'player-pulse-icon',
+    html: '<div class="player-pulse"><div class="player-pulse-ring"></div><div class="player-pulse-dot"></div></div>',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+});
+
+export const CustomMarkerColors = ['white', 'amber', 'red', 'green', 'blue', 'purple', 'coral', 'teal'];
+
+const customMarkerIconCache = {};
+
+export function getCustomMarkerIcon(color) {
+    let key = CustomMarkerColors.includes(color) ? color : 'white';
+    if (customMarkerIconCache[key]) {
+        return customMarkerIconCache[key];
+    }
+    let icon = new ImageIcon({
+        iconUrl: `gfx/terobjs/mm/custom_pin_${key}.png`,
+        iconSize: [37, 48],
+        iconAnchor: [18, 48],
+        popupAnchor: [0, -48],
+        tooltipAnchor: [0, -48]
+    });
+    customMarkerIconCache[key] = icon;
+    return icon;
+}
+
 const latNormalization = 90.0 * TileSize / 2500000.0;
 const lngNormalization = 180.0 * TileSize / 2500000.0;
 

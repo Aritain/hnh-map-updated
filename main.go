@@ -28,6 +28,7 @@ type Map struct {
 
 	gridUpdates  topic
 	mergeUpdates mergeTopic
+	pingUpdates  pingTopic
 }
 
 type Session struct {
@@ -114,6 +115,8 @@ func main() {
 	http.HandleFunc("/admin/setDefaultHide", m.setDefaultHide)
 	http.HandleFunc("/admin/setTitle", m.setTitle)
 	http.HandleFunc("/admin/rebuildZooms", m.rebuildZooms)
+	http.HandleFunc("/admin/uploadPingSound", m.uploadPingSound)
+	http.HandleFunc("/admin/setPingSound", m.setPingSound)
 	http.HandleFunc("/admin/export", m.export)
 	http.HandleFunc("/admin/merge", m.merge)
 	http.HandleFunc("/admin/map", m.adminMap)
@@ -122,6 +125,14 @@ func main() {
 	// Map frontend endpoints
 	http.HandleFunc("/map/api/v1/characters", m.getChars)
 	http.HandleFunc("/map/api/v1/markers", m.getMarkers)
+	http.HandleFunc("/map/api/v1/roads", m.getRoads)
+	http.HandleFunc("/map/api/admin/addRoad", m.addRoad)
+	http.HandleFunc("/map/api/admin/deleteRoad", m.deleteRoad)
+	http.HandleFunc("/map/api/v1/ping", m.sendPing)
+	http.HandleFunc("/map/api/v1/pingSound", m.getPingSound)
+	http.HandleFunc("/map/api/v1/customMarkers", m.getCustomMarkers)
+	http.HandleFunc("/map/api/admin/addCustomMarker", m.addCustomMarker)
+	http.HandleFunc("/map/api/admin/deleteCustomMarker", m.deleteCustomMarker)
 	http.HandleFunc("/map/api/config", m.config)
 	http.HandleFunc("/map/api/admin/wipeTile", m.wipeTile)
 	http.HandleFunc("/map/api/admin/setCoords", m.setCoords)

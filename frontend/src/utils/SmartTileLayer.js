@@ -5,6 +5,15 @@ export const SmartTileLayer = L.TileLayer.extend({
     invalidTile: "",
     map: 0,
 
+    _getZoomForUrl: function () {
+        let zoom = this._tileZoom;
+        let maxZoom = this.options.maxNativeZoom !== undefined ? this.options.maxNativeZoom : this.options.maxZoom;
+        if (this.options.zoomReverse) {
+            zoom = maxZoom - zoom;
+        }
+        return zoom + this.options.zoomOffset;
+    },
+
     getTileUrl: function (coords) {
         return this.getTrueTileUrl(coords, this._getZoomForUrl());
     },
@@ -37,7 +46,7 @@ export const SmartTileLayer = L.TileLayer.extend({
 
     refresh: function (x, y, z) {
         let zoom = z;
-        let maxZoom = this.options.maxZoom;
+        let maxZoom = this.options.maxNativeZoom !== undefined ? this.options.maxNativeZoom : this.options.maxZoom;
         let zoomReverse = this.options.zoomReverse;
         let zoomOffset = this.options.zoomOffset;
 

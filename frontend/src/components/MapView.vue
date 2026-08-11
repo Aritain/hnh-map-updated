@@ -1,5 +1,29 @@
 <template>
   <div>
+    <v-app-bar app dense height="56" color="#1a1a1a" dark style="z-index: 1001;">
+      <img src="haven.jpg" height="36" style="border-radius:4px;object-fit:cover;margin-right:10px;"/>
+      <span style="font-size:1.25rem;"><span style="color:#FF9800;">Haven</span><span style="color:#fff;">Map</span></span>
+      <v-spacer></v-spacer>
+      <v-btn text href="/map" class="mr-2">Map</v-btn>
+      <v-btn text href="/" class="mr-4">Tokens</v-btn>
+      <v-menu open-on-hover offset-y>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn text v-bind="attrs" v-on="on">
+            {{ username }}
+            <v-icon right>mdi-menu-down</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item v-if="auths.includes('admin')" href="/admin">
+            <v-list-item-title>Admin</v-list-item-title>
+          </v-list-item>
+          <v-list-item href="/logout">
+            <v-list-item-title>Logout</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+    </v-app-bar>
+
     <v-navigation-drawer
         :mini-variant.sync="mini"
         app
@@ -172,6 +196,54 @@
           </v-list-item-content>
         </v-list-item>
 
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <v-btn class="short-btn" width="100%" @click="showRoads = !showRoads">
+                {{ (!showRoads) ? 'Show' : 'Hide' }} Roads
+              </v-btn>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <v-btn class="short-btn" width="100%" @click="showCustomMarkers = !showCustomMarkers">
+                {{ (!showCustomMarkers) ? 'Show' : 'Hide' }} Custom Markers
+              </v-btn>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <!--              <label class="title">Custom Markers</label>-->
+              <v-autocomplete return-object outlined dense :items="customMarks" v-model="selectedCustomMarker"
+                              placeholder="Select Marker">
+
+                <template v-slot:item="data">
+                  <img class="mr-2" style="width:24px;height: 24px;" :src="'gfx/terobjs/mm/custom_pin_' + data.item.color + '.png'"/>
+                  {{ data.item.name }}
+                </template>
+              </v-autocomplete>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <!-- DRAW ROAD -->
+        <v-list-item v-if="auths.includes('admin') || auths.includes('writer')">
+          <v-list-item-content>
+            <v-list-item-title>
+              <v-btn class="short-btn" width="100%" :color="drawingRoad ? 'primary' : undefined"
+                     @click="toggleDrawRoad">
+                {{ drawingRoad ? 'Cancel Draw Road' : 'Draw Road' }}
+              </v-btn>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
         <!-- TO PLAYER -->
         <v-list-item>
           <v-list-item-content>
@@ -250,6 +322,9 @@
               <a @click.prevent="queryCoordSet(tile.data)">Rewrite tile coords for {{ tile.data.coords.x }},
                 {{ tile.data.coords.y }}</a>
             </li>
+            <li>
+              <a @click.prevent="promptCustomMarker(tile.data)">Add marker here</a>
+            </li>
           </template>
         </vue-context>
 
@@ -261,6 +336,22 @@
           </template>
         </vue-context>
 
+        <vue-context ref="roadmenu">
+          <template slot-scope="data" v-if="data.data">
+            <li>
+              <a @click.prevent="deleteRoad(data.data)">Delete road {{ data.data.name }}</a>
+            </li>
+          </template>
+        </vue-context>
+
+        <vue-context ref="custommarkermenu">
+          <template slot-scope="data" v-if="data.data">
+            <li>
+              <a @click.prevent="deleteCustomMarker(data.data)">Delete marker {{ data.data.name }}</a>
+            </li>
+          </template>
+        </vue-context>
+
         <modal name="coordSet">
           <form v-on:submit.prevent="setCoords(form)">
             <input v-model="coordSet.x" class="input" type="text" placeholder="0">
@@ -268,18 +359,47 @@
             <button class="button is-primary">Submit</button>
           </form>
         </modal>
+
+        <modal name="roadName">
+          <form v-on:submit.prevent="saveRoad">
+            <input v-model="roadName" class="input" type="text" placeholder="Road name" autofocus>
+            <button class="button is-primary">Submit</button>
+          </form>
+        </modal>
+
+        <modal name="customMarkerName">
+          <form v-on:submit.prevent="saveCustomMarker">
+            <input v-model="customMarkerName" class="input" type="text" placeholder="Marker name" autofocus>
+            <div class="color-swatches">
+              <img v-for="c in customMarkerColors" :key="c"
+                   class="color-swatch" :class="{selected: customMarkerColor === c}"
+                   :src="`gfx/terobjs/mm/custom_pin_${c}.png`"
+                   :title="c"
+                   @click="customMarkerColor = c">
+            </div>
+            <button class="button is-primary">Submit</button>
+          </form>
+        </modal>
       </v-container>
     </v-main>
+    <v-snackbar v-model="pingSnackbar.show" :timeout="6000">
+      {{ pingSnackbar.text }}
+      <template v-slot:action="{ attrs }">
+        <v-btn text v-bind="attrs" @click="jumpToPing">Jump to ping</v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 
 <script>
 import ModelSelect from 'vue-search-select'
-import {GridCoordLayer, HnHCRS, HnHMaxZoom, HnHMinZoom, TileSize} from "../utils/LeafletCustomTypes";
+import {GridCoordLayer, HnHCRS, HnHMaxZoom, HnHMinZoom, TileSize, CustomMarkerColors} from "../utils/LeafletCustomTypes";
 import {SmartTileLayer} from "../utils/SmartTileLayer";
 import * as L from "leaflet";
 import {API_ENDPOINT} from "../main";
 import {Marker} from "../data/Marker";
+import {Road} from "../data/Road";
+import {CustomMarker} from "../data/CustomMarker";
 import {UniqueList} from "../data/UniqueList";
 import {Character} from "../data/Character";
 import VueContext from 'vue-context';
@@ -294,14 +414,27 @@ export default {
     return {
       mini: true,
       showGridCoordinates: false,
-      showMarkers: false,
-      showQuests: false,
-      showQuestTooltips: false,
+      showMarkers: true,
+      showQuests: true,
+      showQuestTooltips: true,
       showThingwalls: true,
       showThingwallTooltips: true,
       showPlayers: true,
       showPlayerTooltips: true,
+      showRoads: true,
+      showCustomMarkers: true,
       expandControlPanel: true,
+
+      drawingRoad: false,
+      roadPoints: [],
+      roadTempMarker: null,
+      roadName: '',
+      pingMarker: null,
+
+      pendingMarkerPoint: null,
+      customMarkerName: '',
+      customMarkerColor: 'white',
+      customMarkerColors: CustomMarkerColors,
 
       trackingCharacterId: -1,
       autoMode: false,
@@ -310,6 +443,7 @@ export default {
       // markersCache: [],
       allMarks: [],
       otherMarks: [],
+      customMarks: [],
       marksCategories: [],
       thingMarks: [],
       questMarks: [],
@@ -317,17 +451,20 @@ export default {
       maps: [],
       selectedMap: null,
       selectedMarker: null,
+      selectedCustomMarker: null,
       selectedQuest: null,
       selectedThing: null,
       selectedPlayer: {value: false},
       overlayMap: {value: false},
       auths: [],
+      username: '',
       mapid: 0,
       coordSetFrom: {x: 0, y: 0},
       coordSet: {
         x: 0,
         y: 0
-      }
+      },
+      pingSnackbar: {show: false, text: '', map: 0, x: 0, y: 0}
     }
   },
   watch: {
@@ -380,6 +517,22 @@ export default {
         });
       }
     },
+    showRoads(value) {
+      console.log("showRoads", value);
+      if (!value) {
+        this.roads.getElements().forEach(it => it.remove(this));
+      } else {
+        this.roads.getElements().filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
+      }
+    },
+    showCustomMarkers(value) {
+      console.log("showCustomMarkers", value);
+      if (!value) {
+        this.customMarkers.getElements().forEach(it => it.remove(this));
+      } else {
+        this.customMarkers.getElements().filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
+      }
+    },
     showThingwallTooltips(value) {
       console.log("showThingwallTooltips", value);
       this.thingMarks.forEach(it => it.tooltip(value));
@@ -405,7 +558,7 @@ export default {
         } else {
           this.map.setView([0, 0], HnHMinZoom);
           let mapid = this.maps[0].ID;
-          this.$router.replace({path: `/grid/${mapid}/0/0/${HnHMinZoom}`});
+          this.$router.replace({path: `/grid/${mapid}/0/0/${HnHMinZoom}`}).catch(() => {});
           this.trackingCharacterId = -1;
         }
       }
@@ -417,7 +570,7 @@ export default {
         let zoom = this.map.getZoom();
         this.map.setView([0, 0], zoom);
 
-        this.$router.replace({path: `/grid/${this.mapid}/0/0/${zoom}`});
+        this.$router.replace({path: `/grid/${this.mapid}/0/0/${zoom}`}).catch(() => {});
         this.trackingCharacterId = -1;
       }
     },
@@ -451,6 +604,14 @@ export default {
             it.tooltip(this.showPlayerTooltips);
           });
         }
+        if (this.showRoads) {
+          this.roads.getElements().forEach(it => it.remove(this));
+          this.roads.getElements().filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
+        }
+        if (this.showCustomMarkers) {
+          this.customMarkers.getElements().forEach(it => it.remove(this));
+          this.customMarkers.getElements().filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
+        }
       } else {
         this.overlayLayer.map = -1;
         this.overlayLayer.redraw();
@@ -479,6 +640,14 @@ export default {
             it.tooltip(this.showPlayerTooltips);
           });
         }
+        if (this.showRoads) {
+          this.roads.getElements().forEach(it => it.remove(this));
+          this.roads.getElements().filter(it => it.map === this.mapid).forEach(it => it.add(this));
+        }
+        if (this.showCustomMarkers) {
+          this.customMarkers.getElements().forEach(it => it.remove(this));
+          this.customMarkers.getElements().filter(it => it.map === this.mapid).forEach(it => it.add(this));
+        }
       }
     },
     selectedMarker(value) {
@@ -494,6 +663,7 @@ export default {
             if (this.mapid !== map.ID)
               this.changeMap(map.ID);
 
+            if (!value.marker) value.add(this);
             this.map.setView(value.marker.getLatLng(), HnHMaxZoom - Math.floor(HnHMaxZoom - HnHMinZoom) / 2);
             this.trackingCharacterId = -1;
             return;
@@ -514,6 +684,7 @@ export default {
             if (this.mapid !== map.ID)
               this.changeMap(map.ID);
 
+            if (!value.marker) value.add(this);
             this.map.setView(value.marker.getLatLng(), HnHMaxZoom - Math.floor(HnHMaxZoom - HnHMinZoom) / 2);
             this.trackingCharacterId = -1;
             return;
@@ -534,6 +705,27 @@ export default {
             if (this.mapid !== map.ID)
               this.changeMap(map.ID);
 
+            if (!value.marker) value.add(this);
+            this.map.setView(value.marker.getLatLng(), HnHMaxZoom - Math.floor(HnHMaxZoom - HnHMinZoom) / 2);
+            this.trackingCharacterId = -1;
+            return;
+          }
+        })
+      }
+    },
+    selectedCustomMarker(value) {
+      console.log('selectedCustomMarker', value);
+      if (value) {
+        let markerMapId = value.map;
+
+        this.maps.forEach((map) => {
+          if (markerMapId === map.ID) {
+            this.selectedMap = map;
+
+            if (this.mapid !== map.ID)
+              this.changeMap(map.ID);
+
+            if (!value.marker) value.add(this);
             this.map.setView(value.marker.getLatLng(), HnHMaxZoom - Math.floor(HnHMaxZoom - HnHMinZoom) / 2);
             this.trackingCharacterId = -1;
             return;
@@ -567,7 +759,7 @@ export default {
       this.map = L.map(this.$refs.map, {
         // Map setup
         minZoom: HnHMinZoom,
-        maxZoom: HnHMaxZoom,
+        maxZoom: HnHMaxZoom + 2,
         crs: HnHCRS,
 
         // Disable all visuals
@@ -592,7 +784,7 @@ export default {
       this.map.on("drag", () => {
         let point = this.map.project(this.map.getCenter(), this.map.getZoom());
         let coordinate = {x: ~~(point.x / TileSize), y: ~~(point.y / TileSize), z: this.map.getZoom()};
-        this.$router.replace({path: `/grid/${this.mapid}/${coordinate.x}/${coordinate.y}/${coordinate.z}`});
+        this.$router.replace({path: `/grid/${this.mapid}/${coordinate.x}/${coordinate.y}/${coordinate.z}`}).catch(() => {});
         this.trackingCharacterId = -1;
       });
       this.map.on("zoom", () => {
@@ -605,14 +797,15 @@ export default {
             y: Math.floor(point.y / TileSize),
             z: this.map.getZoom()
           };
-          this.$router.replace({path: `/grid/${this.mapid}/${coordinate.x}/${coordinate.y}/${coordinate.z}`});
+          this.$router.replace({path: `/grid/${this.mapid}/${coordinate.x}/${coordinate.y}/${coordinate.z}`}).catch(() => {});
           this.trackingCharacterId = -1;
         }
       });
 
       this.layer = new SmartTileLayer('grids/{map}/{z}/{x}_{y}.png?{cache}', {
         minZoom: HnHMinZoom,
-        maxZoom: HnHMaxZoom,
+        maxZoom: HnHMaxZoom + 2,
+        maxNativeZoom: HnHMaxZoom,
         zoomOffset: 0,
         zoomReverse: true,
         tileSize: TileSize
@@ -622,7 +815,8 @@ export default {
 
       this.overlayLayer = new SmartTileLayer('grids/{map}/{z}/{x}_{y}.png?{cache}', {
         minZoom: HnHMinZoom,
-        maxZoom: HnHMaxZoom,
+        maxZoom: HnHMaxZoom + 2,
+        maxNativeZoom: HnHMaxZoom,
         zoomOffset: 0,
         zoomReverse: true,
         tileSize: TileSize,
@@ -637,15 +831,51 @@ export default {
       this.markerLayer = L.layerGroup();
       this.markerLayer.addTo(this.map);
 
+      this.roadLayer = L.layerGroup();
+      this.roadLayer.addTo(this.map);
+
+      this.thingwallConnectionsLayer = L.layerGroup();
+      this.thingwallConnectionsLayer.addTo(this.map);
+
       /*this.map.on('mousemove', (mev) => {
           coords = this.map.project(mev.latlng, this.map.getZoom());
       })*/
 
       this.map.on('contextmenu', ((mev) => {
+        if (this.drawingRoad) {
+          return;
+        }
         if (this.auths.includes('admin') || this.auths.includes('writer')) {
           let point = this.map.project(mev.latlng, this.map.getZoom());
           let coords = {x: Math.floor(point.x / TileSize), y: Math.floor(point.y / TileSize)};
-          this.$refs.menu.open(mev.originalEvent, {coords: coords});
+          let markerPoint = this.map.project(mev.latlng, HnHMaxZoom);
+          this.$refs.menu.open(mev.originalEvent, {
+            coords: coords,
+            point: {x: Math.round(markerPoint.x), y: Math.round(markerPoint.y)}
+          });
+        }
+      }).bind(this));
+
+      this.map.on('click', ((mev) => {
+        if (mev.originalEvent.ctrlKey) {
+          this.sendPing(mev.latlng);
+          return;
+        }
+        if (!this.drawingRoad) {
+          return;
+        }
+        let point = this.map.project(mev.latlng, HnHMaxZoom);
+        this.roadPoints.push({x: Math.round(point.x), y: Math.round(point.y)});
+        if (this.roadPoints.length === 1) {
+          this.roadTempMarker = L.circleMarker(mev.latlng, {radius: 5, color: '#FDB800'}).addTo(this.map);
+        } else if (this.roadPoints.length === 2) {
+          this.drawingRoad = false;
+          if (this.roadTempMarker) {
+            this.map.removeLayer(this.roadTempMarker);
+            this.roadTempMarker = null;
+          }
+          this.roadName = '';
+          this.$modal.show('roadName');
         }
       }).bind(this));
 
@@ -673,7 +903,7 @@ export default {
           };
           coordinate.x += merge['Shift'].x;
           coordinate.y += merge['Shift'].y;
-          this.$router.replace({path: `/grid/${mapTo}/${coordinate.x}/${coordinate.y}/${coordinate.z}`});
+          this.$router.replace({path: `/grid/${mapTo}/${coordinate.x}/${coordinate.y}/${coordinate.z}`}).catch(() => {});
 
           let latLng = this.toLatLng(coordinate.x * 100, coordinate.y * 100);
 
@@ -687,8 +917,25 @@ export default {
         }
       }).bind(this));
 
+      this.source.addEventListener('ping', ((e) => {
+        let ping = JSON.parse(e.data);
+        this.playPingSound();
+        this.pingSnackbar = {
+          show: true,
+          text: `${ping.Username} pinged the map`,
+          map: ping.Map,
+          x: ping.X,
+          y: ping.Y
+        };
+        if (this.mapid === ping.Map) {
+          this.showPingMarker(this.toLatLng(ping.X, ping.Y));
+        }
+      }).bind(this));
+
       this.markers = new UniqueList();
       this.characters = new UniqueList();
+      this.roads = new UniqueList();
+      this.customMarkers = new UniqueList();
 
       // Create markers
       this.updateCharacters(characters);
@@ -725,6 +972,18 @@ export default {
       }, () => {
         this.$emit("error")
       });
+      // Request roads
+      this.$http.get(`${API_ENDPOINT}/v1/roads`).then(response => {
+        this.updateRoads(response.body);
+      }, () => {
+        this.$emit("error")
+      });
+      // Request custom markers
+      this.$http.get(`${API_ENDPOINT}/v1/customMarkers`).then(response => {
+        this.updateCustomMarkers(response.body);
+      }, () => {
+        this.$emit("error")
+      });
     },
     updateMarkers(markersData) {
       this.markers.update(markersData.map(it => {
@@ -738,7 +997,10 @@ export default {
             return m;
           }),
           (marker) => { // Add
-            if (marker.map === this.mapid || marker.map === this.overlayLayer.map) {
+            let visible = marker.type === "thingwall" ? this.showThingwalls
+                : marker.type === "quest" ? this.showQuests
+                : this.showMarkers;
+            if (visible && (marker.map === this.mapid || marker.map === this.overlayLayer.map)) {
               marker.add(this);
             }
             marker.setClickCallback(() => {
@@ -749,6 +1011,12 @@ export default {
                 this.$refs.markermenu.open(mev.originalEvent, {name: marker.name, id: marker.id});
               }
             });
+            if (marker.type === "thingwall") {
+              marker.setHoverCallback(
+                  (m) => this.showThingwallConnections(m),
+                  () => this.clearThingwallConnections()
+              );
+            }
           },
           (marker) => { // Remove
             marker.remove(this);
@@ -783,6 +1051,134 @@ export default {
           this.marksCategories.push(it.type);
       });
     },
+    showThingwallConnections(marker) {
+      this.thingwallConnectionsLayer.clearLayers();
+      let neighbors = this.thingMarks
+          .filter(it => it !== marker && it.map === marker.map && it.marker)
+          .map(it => ({
+            marker: it,
+            dist: Math.hypot(it.position.x - marker.position.x, it.position.y - marker.position.y)
+          }))
+          .sort((a, b) => a.dist - b.dist)
+          .slice(0, 3);
+      let from = marker.marker.getLatLng();
+      neighbors.forEach(n => {
+        L.polyline([from, n.marker.marker.getLatLng()], {
+          color: '#00cffd',
+          weight: 2,
+          opacity: 0.8,
+          dashArray: '6, 6'
+        }).addTo(this.thingwallConnectionsLayer);
+      });
+    },
+    clearThingwallConnections() {
+      this.thingwallConnectionsLayer.clearLayers();
+    },
+    updateRoads(roadsData) {
+      this.roads.update(roadsData.map(it => new Road(it)),
+          (road) => { // Add
+            if (this.showRoads && (road.map === this.mapid || road.map === this.overlayLayer.map)) {
+              road.add(this);
+            }
+            road.setContextMenu((mev) => {
+              if (this.auths.includes('admin') || this.auths.includes('writer')) {
+                this.$refs.roadmenu.open(mev.originalEvent, {name: road.name, id: road.id});
+              }
+            });
+          },
+          (road) => { // Remove
+            road.remove(this);
+          }
+      );
+    },
+    toggleDrawRoad() {
+      this.drawingRoad = !this.drawingRoad;
+      this.roadPoints = [];
+      if (this.roadTempMarker) {
+        this.map.removeLayer(this.roadTempMarker);
+        this.roadTempMarker = null;
+      }
+    },
+    saveRoad() {
+      if (!this.roadName || this.roadPoints.length !== 2) {
+        return;
+      }
+      this.$http.get(`${API_ENDPOINT}/admin/addRoad`, {
+        params: {
+          map: this.mapid,
+          ax: this.roadPoints[0].x,
+          ay: this.roadPoints[0].y,
+          bx: this.roadPoints[1].x,
+          by: this.roadPoints[1].y,
+          name: this.roadName
+        }
+      }).then(response => {
+        this.updateRoads([...this.roads.getElements(), response.body]);
+        this.$modal.hide('roadName');
+        this.roadPoints = [];
+      }, () => this.$emit("error"));
+    },
+    deleteRoad(data) {
+      this.$http.get(`${API_ENDPOINT}/admin/deleteRoad`, {params: {id: data.id}});
+      let road = this.roads.byId(data.id);
+      if (road) {
+        road.remove(this);
+        delete this.roads.elements[data.id];
+      }
+    },
+    updateCustomMarkers(markersData) {
+      this.customMarkers.update(markersData.map(it => new CustomMarker(it)),
+          (marker) => { // Add
+            if (this.showCustomMarkers && (marker.map === this.mapid || marker.map === this.overlayLayer.map)) {
+              marker.add(this);
+            }
+            marker.setContextMenu((mev) => {
+              if (this.auths.includes('admin') || this.auths.includes('writer')) {
+                this.$refs.custommarkermenu.open(mev.originalEvent, {name: marker.name, id: marker.id});
+              }
+            });
+          },
+          (marker) => { // Remove
+            marker.remove(this);
+          }
+      );
+      this.customMarks.length = 0;
+      this.customMarkers.getElements().filter(it => it.name != null && it.name.length > 0).sort((a, b) => {
+        return a.name.localeCompare(b.name);
+      }).forEach(it => this.customMarks.push(it));
+    },
+    promptCustomMarker(data) {
+      this.pendingMarkerPoint = data.point;
+      this.customMarkerName = '';
+      this.customMarkerColor = 'white';
+      this.$modal.show('customMarkerName');
+    },
+    saveCustomMarker() {
+      if (!this.customMarkerName || !this.pendingMarkerPoint) {
+        return;
+      }
+      this.$http.get(`${API_ENDPOINT}/admin/addCustomMarker`, {
+        params: {
+          map: this.mapid,
+          x: this.pendingMarkerPoint.x,
+          y: this.pendingMarkerPoint.y,
+          name: this.customMarkerName,
+          color: this.customMarkerColor
+        }
+      }).then(response => {
+        this.updateCustomMarkers([...this.customMarkers.getElements(), response.body]);
+        this.$modal.hide('customMarkerName');
+        this.pendingMarkerPoint = null;
+      }, () => this.$emit("error"));
+    },
+    deleteCustomMarker(data) {
+      this.$http.get(`${API_ENDPOINT}/admin/deleteCustomMarker`, {params: {id: data.id}});
+      let marker = this.customMarkers.byId(data.id);
+      if (marker) {
+        marker.remove(this);
+        delete this.customMarkers.elements[data.id];
+      }
+    },
     updateCharacters(charactersData) {
       this.characters.update(charactersData.map(it => {
             let ch = new Character(it);
@@ -815,9 +1211,55 @@ export default {
     processConfig(config) {
       document.title = config.title;
       this.auths = config.auths;
+      this.username = config.username;
     },
     toLatLng(x, y) {
       return this.map.unproject([x, y], HnHMaxZoom);
+    },
+    sendPing(latlng) {
+      let point = this.map.project(latlng, HnHMaxZoom);
+      this.$http.get(`${API_ENDPOINT}/v1/ping`, {
+        params: {map: this.mapid, x: Math.round(point.x), y: Math.round(point.y)}
+      });
+    },
+    jumpToPing() {
+      this.pingSnackbar.show = false;
+      if (this.mapid !== this.pingSnackbar.map) {
+        this.changeMap(this.pingSnackbar.map);
+      }
+      let latLng = this.toLatLng(this.pingSnackbar.x, this.pingSnackbar.y);
+      this.map.setView(latLng, HnHMaxZoom);
+      this.showPingMarker(latLng);
+    },
+    showPingMarker(latlng) {
+      if (this.pingMarker) {
+        this.map.removeLayer(this.pingMarker);
+        this.pingMarker = null;
+      }
+      this.pingMarker = L.circleMarker(latlng, {radius: 12, color: '#FF0000', weight: 3, fillColor: '#FF0000', fillOpacity: 0.3}).addTo(this.map);
+      setTimeout(() => {
+        if (this.pingMarker) {
+          this.map.removeLayer(this.pingMarker);
+          this.pingMarker = null;
+        }
+      }, 8000);
+    },
+    playPingSound() {
+      let audio = new Audio('/map/api/v1/pingSound?t=' + Date.now());
+      audio.addEventListener('error', () => this.playDefaultPingSound());
+      audio.play().catch(() => this.playDefaultPingSound());
+    },
+    playDefaultPingSound() {
+      let ctx = new (window.AudioContext || window.webkitAudioContext)();
+      let osc = ctx.createOscillator();
+      let gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
     },
     zoomOut() {
       this.trackingCharacterId = -1;
@@ -880,6 +1322,14 @@ export default {
             it.tooltip(this.showPlayerTooltips);
           });
         }
+        if (this.showRoads) {
+          this.roads.getElements().forEach(it => it.remove(this));
+          this.roads.getElements().filter(it => it.map === this.mapid).forEach(it => it.add(this));
+        }
+        if (this.showCustomMarkers) {
+          this.customMarkers.getElements().forEach(it => it.remove(this));
+          this.customMarkers.getElements().filter(it => it.map === this.mapid).forEach(it => it.add(this));
+        }
       }
     }
   }
@@ -894,11 +1344,82 @@ export default {
 
 .map {
   width: 100vw;
-  height: 100vh;
+  height: calc(100vh - 56px);
 }
 
 .leaflet-container {
   background: #000;
+}
+
+.player-pulse-icon {
+  background: transparent;
+  border: none;
+}
+
+.custom-marker-icon {
+  background: transparent;
+  border: none;
+}
+
+.color-swatches {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 26px;
+  height: 36px;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+}
+
+.color-swatch.selected {
+  outline: 2px solid #FF9800;
+  background: rgba(255, 152, 0, 0.15);
+}
+
+.player-pulse {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+.player-pulse-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 15px;
+  margin: -7.5px 0 0 -7.5px;
+  background: #ff0000;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(255, 0, 0, 0.9);
+}
+
+.player-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 15px;
+  margin: -7.5px 0 0 -7.5px;
+  border-radius: 50%;
+  background: rgba(255, 0, 0, 0.7);
+  animation: player-pulse-anim 1.5s ease-out infinite;
+}
+
+@keyframes player-pulse-anim {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(3.5);
+    opacity: 0;
+  }
 }
 
 .leaflet-control {

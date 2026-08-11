@@ -3,14 +3,16 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"go.etcd.io/bbolt"
 )
 
 type Config struct {
-	Title string   `json:"title"`
-	Auths []string `json:"auths"`
+	Title    string   `json:"title"`
+	Auths    []string `json:"auths"`
+	Username string   `json:"username"`
 }
 
 func (m *Map) getChars(rw http.ResponseWriter, req *http.Request) {
@@ -35,6 +37,58 @@ func (m *Map) getChars(rw http.ResponseWriter, req *http.Request) {
 		//log.Printf("Auth: %v, User: %v, Char: %v, %t\n", s.Auths, groups, v.group, b)
 	}
 	json.NewEncoder(rw).Encode(chars)
+}
+
+func (m *Map) sendPing(rw http.ResponseWriter, req *http.Request) {
+	s := m.getSession(req)
+	if s == nil || !s.Auths.Has(AUTH_MAP) {
+		rw.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	mapid, err := strconv.Atoi(req.FormValue("map"))
+	if err != nil {
+		http.Error(rw, "map parse failed", http.StatusBadRequest)
+		return
+	}
+	x, err := strconv.Atoi(req.FormValue("x"))
+	if err != nil {
+		http.Error(rw, "coord parse failed", http.StatusBadRequest)
+		return
+	}
+	y, err := strconv.Atoi(req.FormValue("y"))
+	if err != nil {
+		http.Error(rw, "coord parse failed", http.StatusBadRequest)
+		return
+	}
+	m.pingUpdates.send(&Ping{
+		Map:      mapid,
+		X:        x,
+		Y:        y,
+		Username: s.Username,
+	})
+}
+
+func (m *Map) getPingSound(rw http.ResponseWriter, req *http.Request) {
+	s := m.getSession(req)
+	if s == nil || !s.Auths.Has(AUTH_MAP) {
+		rw.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	name := ""
+	m.db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("config"))
+		if b == nil {
+			return nil
+		}
+		name = string(b.Get([]byte("pingSound")))
+		return nil
+	})
+	if name == "" {
+		rw.WriteHeader(http.StatusNoContent)
+		return
+	}
+	rw.Header().Set("Cache-Control", "no-store")
+	http.ServeFile(rw, req, filepath.Join(m.gridStorage, "sounds", name))
 }
 
 func (m *Map) getMarkers(rw http.ResponseWriter, req *http.Request) {
@@ -66,10 +120,14 @@ func (m *Map) getMarkers(rw http.ResponseWriter, req *http.Request) {
 			json.Unmarshal(v, &m)
 			graw := grids.Get([]byte(m.GridID))
 			if graw == nil {
+				// log.Printf("DEBUG getMarkers: DROPPED id=%d name=%q grid=%s image=%q hidden=%v: grid not registered\n",
+				// 	m.ID, m.Name, m.GridID, m.Image, m.Hidden)
 				return nil
 			}
 			g := GridData{}
 			json.Unmarshal(graw, &g)
+			// log.Printf("DEBUG getMarkers: SERVED id=%d name=%q image=%q hidden=%v map=%d worldPos=%d,%d\n",
+			// 	m.ID, m.Name, m.Image, m.Hidden, g.Map, m.Position.X+g.Coord.X*100, m.Position.Y+g.Coord.Y*100)
 			markers = append(markers, FrontendMarker{
 				Image:  m.Image,
 				Hidden: m.Hidden,
@@ -123,7 +181,8 @@ func (m *Map) config(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	config := Config{
-		Auths: s.Auths,
+		Auths:    s.Auths,
+		Username: s.Username,
 	}
 	m.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("config"))

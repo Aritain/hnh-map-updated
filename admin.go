@@ -29,6 +29,7 @@ func (m *Map) admin(rw http.ResponseWriter, req *http.Request) {
 	prefix := ""
 	maps := []MapInfo{}
 	defaultHide := false
+	pingSound := ""
 	m.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("users"))
 		if b == nil {
@@ -38,6 +39,7 @@ func (m *Map) admin(rw http.ResponseWriter, req *http.Request) {
 		if config != nil {
 			prefix = string(config.Get([]byte("prefix")))
 			defaultHide = config.Get([]byte("defaultHide")) != nil
+			pingSound = string(config.Get([]byte("pingSound")))
 		}
 		mapB := tx.Bucket([]byte("maps"))
 		if mapB != nil {
@@ -54,6 +56,16 @@ func (m *Map) admin(rw http.ResponseWriter, req *http.Request) {
 		})
 	})
 
+	pingSounds := []string{}
+	entries, err := os.ReadDir(filepath.Join(m.gridStorage, "sounds"))
+	if err == nil {
+		for _, e := range entries {
+			if !e.IsDir() {
+				pingSounds = append(pingSounds, e.Name())
+			}
+		}
+	}
+
 	m.ExecuteTemplate(rw, filepath.FromSlash("admin/index.tmpl"), struct {
 		Page        Page
 		Session     *Session
@@ -61,6 +73,8 @@ func (m *Map) admin(rw http.ResponseWriter, req *http.Request) {
 		Prefix      string
 		DefaultHide bool
 		Maps        []MapInfo
+		PingSounds  []string
+		PingSound   string
 	}{
 		Page:        m.getPage(req),
 		Session:     s,
@@ -68,6 +82,8 @@ func (m *Map) admin(rw http.ResponseWriter, req *http.Request) {
 		Prefix:      prefix,
 		DefaultHide: defaultHide,
 		Maps:        maps,
+		PingSounds:  pingSounds,
+		PingSound:   pingSound,
 	})
 }
 
@@ -216,6 +232,61 @@ func (m *Map) setDefaultHide(rw http.ResponseWriter, req *http.Request) {
 		} else {
 			return b.Delete([]byte("defaultHide"))
 		}
+	})
+	http.Redirect(rw, req, "/admin/", 302)
+}
+
+func (m *Map) uploadPingSound(rw http.ResponseWriter, req *http.Request) {
+	s := m.getSession(req)
+	if s == nil || !s.Auths.Has(AUTH_ADMIN) {
+		http.Redirect(rw, req, "/", 302)
+		return
+	}
+	err := req.ParseMultipartForm(1024 * 1024 * 20)
+	if err != nil {
+		log.Println(err)
+		http.Error(rw, "internal error", http.StatusInternalServerError)
+		return
+	}
+	f, hdr, err := req.FormFile("sound")
+	if err != nil {
+		log.Println(err)
+		http.Error(rw, "request error", http.StatusBadRequest)
+		return
+	}
+	defer f.Close()
+
+	err = os.MkdirAll(filepath.Join(m.gridStorage, "sounds"), 0777)
+	if err != nil {
+		log.Println(err)
+		http.Error(rw, "internal error", http.StatusInternalServerError)
+		return
+	}
+	out, err := os.Create(filepath.Join(m.gridStorage, "sounds", filepath.Base(hdr.Filename)))
+	if err != nil {
+		log.Println(err)
+		http.Error(rw, "internal error", http.StatusInternalServerError)
+		return
+	}
+	defer out.Close()
+	io.Copy(out, f)
+
+	http.Redirect(rw, req, "/admin/", 302)
+}
+
+func (m *Map) setPingSound(rw http.ResponseWriter, req *http.Request) {
+	s := m.getSession(req)
+	if s == nil || !s.Auths.Has(AUTH_ADMIN) {
+		http.Redirect(rw, req, "/", 302)
+		return
+	}
+	name := filepath.Base(req.FormValue("sound"))
+	m.db.Update(func(tx *bbolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("config"))
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte("pingSound"), []byte(name))
 	})
 	http.Redirect(rw, req, "/admin/", 302)
 }

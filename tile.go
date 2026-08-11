@@ -108,9 +108,11 @@ func (m *Map) watchGridUpdates(rw http.ResponseWriter, req *http.Request) {
 
 	c := make(chan *TileData, 1000)
 	mc := make(chan *Merge, 6) //fixme 5???
+	pc := make(chan *Ping, 10)
 
 	m.gridUpdates.watch(c)
 	m.mergeUpdates.watch(mc)
+	m.pingUpdates.watch(pc)
 
 	tileCache := make([]TileCache, 0, 100)
 
@@ -186,6 +188,20 @@ func (m *Map) watchGridUpdates(rw http.ResponseWriter, req *http.Request) {
 			}
 			log.Println(string(raw))
 			fmt.Fprint(rw, "event: merge\n")
+			fmt.Fprint(rw, "data: ")
+			rw.Write(raw)
+			fmt.Fprint(rw, "\n\n")
+			flusher.Flush()
+		case e, ok := <-pc:
+			if !ok {
+				return
+			}
+			raw, err := json.Marshal(e)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			fmt.Fprint(rw, "event: ping\n")
 			fmt.Fprint(rw, "data: ")
 			rw.Write(raw)
 			fmt.Fprint(rw, "\n\n")
