@@ -946,8 +946,8 @@ export default {
       } else if (this.$route.params.gridX && this.$route.params.gridY && this.$route.params.zoom) { // Navigate to specific grid
         let latLng = this.toLatLng(this.$route.params.gridX * 100, this.$route.params.gridY * 100);
 
-        if (this.mapid !== this.$route.params.map) {
-          this.changeMap(this.$route.params.map);
+        if (this.mapid !== +this.$route.params.map) {
+          this.changeMap(+this.$route.params.map);
         }
 
         this.map.setView(latLng, this.$route.params.zoom);

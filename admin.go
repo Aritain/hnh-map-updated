@@ -189,6 +189,18 @@ func (m *Map) wipe(rw http.ResponseWriter, req *http.Request) {
 				return err
 			}
 		}
+		if tx.Bucket([]byte("roads")) != nil {
+			err := tx.DeleteBucket([]byte("roads"))
+			if err != nil {
+				return err
+			}
+		}
+		if tx.Bucket([]byte("customMarkers")) != nil {
+			err := tx.DeleteBucket([]byte("customMarkers"))
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 	if err != nil {

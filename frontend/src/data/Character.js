@@ -49,7 +49,7 @@ export class Character {
             // });
             this.marker.on("click", this.callCallback.bind(this));
             this.marker.addTo(mapview.map);
-            this.unbindTooltip();
+            this.tooltip(this.tstate);
         }
     }
 
