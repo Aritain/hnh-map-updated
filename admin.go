@@ -561,6 +561,47 @@ func (m *Map) setCoords(rw http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			return err
 		}
+		pixelDiff := Position{X: diff.X * 100, Y: diff.Y * 100}
+		if roads := tx.Bucket([]byte("roads")); roads != nil {
+			err = roads.ForEach(func(k, v []byte) error {
+				r := Road{}
+				err := json.Unmarshal(v, &r)
+				if err != nil {
+					return err
+				}
+				if r.Map == mapid {
+					r.PointA.X += pixelDiff.X
+					r.PointA.Y += pixelDiff.Y
+					r.PointB.X += pixelDiff.X
+					r.PointB.Y += pixelDiff.Y
+					raw, _ := json.Marshal(r)
+					roads.Put(k, raw)
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if customMarkers := tx.Bucket([]byte("customMarkers")); customMarkers != nil {
+			err = customMarkers.ForEach(func(k, v []byte) error {
+				cm := CustomMarker{}
+				err := json.Unmarshal(v, &cm)
+				if err != nil {
+					return err
+				}
+				if cm.Map == mapid {
+					cm.X += pixelDiff.X
+					cm.Y += pixelDiff.Y
+					raw, _ := json.Marshal(cm)
+					customMarkers.Put(k, raw)
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
 		err = mapTiles.ForEach(func(k, v []byte) error {
 			td := &TileData{}
 			err := json.Unmarshal(v, &td)

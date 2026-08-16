@@ -232,13 +232,11 @@
           </v-list-item-content>
         </v-list-item>
 
-        <!-- DRAW ROAD -->
-        <v-list-item v-if="auths.includes('admin') || auths.includes('writer')">
+        <v-list-item>
           <v-list-item-content>
             <v-list-item-title>
-              <v-btn class="short-btn" width="100%" :color="drawingRoad ? 'primary' : undefined"
-                     @click="toggleDrawRoad">
-                {{ drawingRoad ? 'Cancel Draw Road' : 'Draw Road' }}
+              <v-btn class="short-btn" width="100%" @click="showPlayerTooltips = !showPlayerTooltips">
+                {{ (!showPlayerTooltips) ? 'Show' : 'Hide' }} Players Names
               </v-btn>
             </v-list-item-title>
           </v-list-item-content>
@@ -256,11 +254,13 @@
           </v-list-item-content>
         </v-list-item>
 
-        <v-list-item>
+        <!-- DRAW ROAD -->
+        <v-list-item v-if="auths.includes('admin') || auths.includes('writer')">
           <v-list-item-content>
             <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showPlayerTooltips = !showPlayerTooltips">
-                {{ (!showPlayerTooltips) ? 'Show' : 'Hide' }} Players Names
+              <v-btn class="short-btn" width="100%" :color="drawingRoad ? 'primary' : undefined"
+                     @click="toggleDrawRoad">
+                {{ drawingRoad ? 'Cancel Draw Road' : 'Draw Road' }}
               </v-btn>
             </v-list-item-title>
           </v-list-item-content>
