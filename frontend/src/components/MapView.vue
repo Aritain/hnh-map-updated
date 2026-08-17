@@ -266,6 +266,17 @@
           </v-list-item-content>
         </v-list-item>
 
+        <!-- HIDE BURROWS -->
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <v-btn class="short-btn" width="100%" @click="showBurrows = !showBurrows">
+                {{ (!showBurrows) ? 'Show' : 'Hide' }} Burrows
+              </v-btn>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
       </v-list>
 
 
@@ -353,23 +364,23 @@
         </vue-context>
 
         <modal name="coordSet">
-          <form v-on:submit.prevent="setCoords(form)">
-            <input v-model="coordSet.x" class="input" type="text" placeholder="0">
-            <input v-model="coordSet.y" class="input" type="text" placeholder="0">
-            <button class="button is-primary">Submit</button>
+          <form class="pa-4" v-on:submit.prevent="setCoords(form)">
+            <v-text-field light v-model="coordSet.x" label="X" placeholder="0"></v-text-field>
+            <v-text-field light v-model="coordSet.y" label="Y" placeholder="0"></v-text-field>
+            <v-btn color="primary" type="submit">Submit</v-btn>
           </form>
         </modal>
 
         <modal name="roadName">
-          <form v-on:submit.prevent="saveRoad">
-            <input v-model="roadName" class="input" type="text" placeholder="Road name" autofocus>
-            <button class="button is-primary">Submit</button>
+          <form class="pa-4" v-on:submit.prevent="saveRoad">
+            <v-text-field light v-model="roadName" label="Road name" autofocus></v-text-field>
+            <v-btn color="primary" type="submit">Submit</v-btn>
           </form>
         </modal>
 
         <modal name="customMarkerName">
-          <form v-on:submit.prevent="saveCustomMarker">
-            <input v-model="customMarkerName" class="input" type="text" placeholder="Marker name" autofocus>
+          <form class="pa-4" v-on:submit.prevent="saveCustomMarker">
+            <v-text-field light v-model="customMarkerName" label="Marker name" autofocus></v-text-field>
             <div class="color-swatches">
               <img v-for="c in customMarkerColors" :key="c"
                    class="color-swatch" :class="{selected: customMarkerColor === c}"
@@ -377,7 +388,7 @@
                    :title="c"
                    @click="customMarkerColor = c">
             </div>
-            <button class="button is-primary">Submit</button>
+            <v-btn color="primary" type="submit">Submit</v-btn>
           </form>
         </modal>
       </v-container>
@@ -423,6 +434,7 @@ export default {
       showPlayerTooltips: true,
       showRoads: true,
       showCustomMarkers: true,
+      showBurrows: true,
       expandControlPanel: true,
 
       drawingRoad: false,
@@ -447,6 +459,7 @@ export default {
       marksCategories: [],
       thingMarks: [],
       questMarks: [],
+      burrowMarks: [],
       players: [],
       maps: [],
       selectedMap: null,
@@ -504,6 +517,14 @@ export default {
           it.add(this);
           it.tooltip(this.showQuestTooltips);
         });
+      }
+    },
+    showBurrows(value) {
+      console.log("showBurrows", value);
+      if (!value) {
+        this.burrowMarks.forEach(it => it.remove(this));
+      } else {
+        this.burrowMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
       }
     },
     showPlayers(value) {
@@ -597,6 +618,10 @@ export default {
             it.tooltip(this.showQuestTooltips);
           });
         }
+        if (this.showBurrows) {
+          this.burrowMarks.forEach(it => it.remove(this));
+          this.burrowMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
+        }
         if (this.showPlayers) {
           this.characters.getElements().forEach(it => it.remove(this));
           this.characters.getElements().filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => {
@@ -632,6 +657,10 @@ export default {
             it.add(this);
             it.tooltip(this.showPlayerTooltips);
           });
+        }
+        if (this.showBurrows) {
+          this.burrowMarks.forEach(it => it.remove(this));
+          this.burrowMarks.filter(it => it.map === this.mapid).forEach(it => it.add(this));
         }
         if (this.showPlayers) {
           this.characters.getElements().forEach(it => it.remove(this));
@@ -999,6 +1028,7 @@ export default {
           (marker) => { // Add
             let visible = marker.type === "thingwall" ? this.showThingwalls
                 : marker.type === "quest" ? this.showQuests
+                : marker.type === "burrow" ? this.showBurrows
                 : this.showMarkers;
             if (visible && (marker.map === this.mapid || marker.map === this.overlayLayer.map)) {
               marker.add(this);
@@ -1035,6 +1065,7 @@ export default {
       this.otherMarks.length = 0;
       this.thingMarks.length = 0;
       this.questMarks.length = 0;
+      this.burrowMarks.length = 0;
       this.markers.getElements().filter(it => it.name != null && it.name.length > 0 && !it.hidden).sort((a, b) => {
         let im = a.image.localeCompare(b.image);
         return im === 0 ? a.name.localeCompare(b.name) : im;
@@ -1044,6 +1075,8 @@ export default {
           this.thingMarks.push(it);
         else if (it.type === "quest")
           this.questMarks.push(it);
+        else if (it.type === "burrow")
+          this.burrowMarks.push(it);
         else
           this.otherMarks.push(it);
 
@@ -1314,6 +1347,10 @@ export default {
             it.add(this);
             it.tooltip(this.showQuestTooltips);
           });
+        }
+        if (this.showBurrows) {
+          this.burrowMarks.forEach(it => it.remove(this));
+          this.burrowMarks.filter(it => it.map === this.mapid).forEach(it => it.add(this));
         }
         if (this.showPlayers) {
           this.characters.getElements().forEach(it => it.remove(this));
