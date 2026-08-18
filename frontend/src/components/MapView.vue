@@ -266,12 +266,12 @@
           </v-list-item-content>
         </v-list-item>
 
-        <!-- HIDE BURROWS -->
+        <!-- HIDE CLUTTER -->
         <v-list-item>
           <v-list-item-content>
             <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showBurrows = !showBurrows">
-                {{ (!showBurrows) ? 'Show' : 'Hide' }} Burrows
+              <v-btn class="short-btn" width="100%" @click="showClutter = !showClutter">
+                {{ (!showClutter) ? 'Show' : 'Hide' }} Clutter
               </v-btn>
             </v-list-item-title>
           </v-list-item-content>
@@ -415,6 +415,8 @@ import {UniqueList} from "../data/UniqueList";
 import {Character} from "../data/Character";
 import VueContext from 'vue-context';
 
+const CLUTTER_TYPES = ["burrow", "clamreef", "flintwash", "spawningbed"];
+
 export default {
   name: "MapView",
   components: {
@@ -434,7 +436,7 @@ export default {
       showPlayerTooltips: true,
       showRoads: true,
       showCustomMarkers: true,
-      showBurrows: true,
+      showClutter: false,
       expandControlPanel: true,
 
       drawingRoad: false,
@@ -459,7 +461,7 @@ export default {
       marksCategories: [],
       thingMarks: [],
       questMarks: [],
-      burrowMarks: [],
+      clutterMarks: [],
       players: [],
       maps: [],
       selectedMap: null,
@@ -519,12 +521,12 @@ export default {
         });
       }
     },
-    showBurrows(value) {
-      console.log("showBurrows", value);
+    showClutter(value) {
+      console.log("showClutter", value);
       if (!value) {
-        this.burrowMarks.forEach(it => it.remove(this));
+        this.clutterMarks.forEach(it => it.remove(this));
       } else {
-        this.burrowMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
+        this.clutterMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
       }
     },
     showPlayers(value) {
@@ -618,9 +620,9 @@ export default {
             it.tooltip(this.showQuestTooltips);
           });
         }
-        if (this.showBurrows) {
-          this.burrowMarks.forEach(it => it.remove(this));
-          this.burrowMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
+        if (this.showClutter) {
+          this.clutterMarks.forEach(it => it.remove(this));
+          this.clutterMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
         }
         if (this.showPlayers) {
           this.characters.getElements().forEach(it => it.remove(this));
@@ -658,9 +660,9 @@ export default {
             it.tooltip(this.showPlayerTooltips);
           });
         }
-        if (this.showBurrows) {
-          this.burrowMarks.forEach(it => it.remove(this));
-          this.burrowMarks.filter(it => it.map === this.mapid).forEach(it => it.add(this));
+        if (this.showClutter) {
+          this.clutterMarks.forEach(it => it.remove(this));
+          this.clutterMarks.filter(it => it.map === this.mapid).forEach(it => it.add(this));
         }
         if (this.showPlayers) {
           this.characters.getElements().forEach(it => it.remove(this));
@@ -687,8 +689,6 @@ export default {
 
         this.maps.forEach((map) => {
           if (markerMapId === map.ID) {
-            this.selectedMap = map;
-
             if (this.mapid !== map.ID)
               this.changeMap(map.ID);
 
@@ -708,8 +708,6 @@ export default {
 
         this.maps.forEach((map) => {
           if (markerMapId === map.ID) {
-            this.selectedMap = map;
-
             if (this.mapid !== map.ID)
               this.changeMap(map.ID);
 
@@ -729,8 +727,6 @@ export default {
 
         this.maps.forEach((map) => {
           if (markerMapId === map.ID) {
-            this.selectedMap = map;
-
             if (this.mapid !== map.ID)
               this.changeMap(map.ID);
 
@@ -749,8 +745,6 @@ export default {
 
         this.maps.forEach((map) => {
           if (markerMapId === map.ID) {
-            this.selectedMap = map;
-
             if (this.mapid !== map.ID)
               this.changeMap(map.ID);
 
@@ -1028,7 +1022,7 @@ export default {
           (marker) => { // Add
             let visible = marker.type === "thingwall" ? this.showThingwalls
                 : marker.type === "quest" ? this.showQuests
-                : marker.type === "burrow" ? this.showBurrows
+                : CLUTTER_TYPES.includes(marker.type) ? this.showClutter
                 : this.showMarkers;
             if (visible && (marker.map === this.mapid || marker.map === this.overlayLayer.map)) {
               marker.add(this);
@@ -1065,7 +1059,7 @@ export default {
       this.otherMarks.length = 0;
       this.thingMarks.length = 0;
       this.questMarks.length = 0;
-      this.burrowMarks.length = 0;
+      this.clutterMarks.length = 0;
       this.markers.getElements().filter(it => it.name != null && it.name.length > 0 && !it.hidden).sort((a, b) => {
         let im = a.image.localeCompare(b.image);
         return im === 0 ? a.name.localeCompare(b.name) : im;
@@ -1075,8 +1069,8 @@ export default {
           this.thingMarks.push(it);
         else if (it.type === "quest")
           this.questMarks.push(it);
-        else if (it.type === "burrow")
-          this.burrowMarks.push(it);
+        else if (CLUTTER_TYPES.includes(it.type))
+          this.clutterMarks.push(it);
         else
           this.otherMarks.push(it);
 
@@ -1348,9 +1342,9 @@ export default {
             it.tooltip(this.showQuestTooltips);
           });
         }
-        if (this.showBurrows) {
-          this.burrowMarks.forEach(it => it.remove(this));
-          this.burrowMarks.filter(it => it.map === this.mapid).forEach(it => it.add(this));
+        if (this.showClutter) {
+          this.clutterMarks.forEach(it => it.remove(this));
+          this.clutterMarks.filter(it => it.map === this.mapid).forEach(it => it.add(this));
         }
         if (this.showPlayers) {
           this.characters.getElements().forEach(it => it.remove(this));
