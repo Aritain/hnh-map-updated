@@ -277,6 +277,17 @@
           </v-list-item-content>
         </v-list-item>
 
+        <!-- HIDE CHARACTER NAMES -->
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <v-btn class="short-btn" width="100%" @click="hideCharacterNames = !hideCharacterNames">
+                {{ (!hideCharacterNames) ? 'Hide' : 'Show' }} Character Names
+              </v-btn>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
       </v-list>
 
 
@@ -437,6 +448,7 @@ export default {
       showRoads: true,
       showCustomMarkers: true,
       showClutter: false,
+      hideCharacterNames: true,
       expandControlPanel: true,
 
       drawingRoad: false,
@@ -568,13 +580,17 @@ export default {
       console.log("showPlayerTooltips", value);
       this.characters.getElements().forEach(it => it.tooltip(value));
     },
+    hideCharacterNames(value) {
+      console.log("hideCharacterNames", value);
+      this.characters.getElements().forEach(it => it.setHideCharacterNames(value));
+    },
     trackingCharacterId(value) {
       if (value !== -1) {
         let character = this.characters.byId(value);
         if (character) {
           this.changeMap(character.map);
           let latlng = this.map.unproject([character.position.x, character.position.y], HnHMaxZoom);
-          this.map.setView(latlng, HnHMaxZoom - Math.floor(HnHMaxZoom - HnHMinZoom) / 2);
+          this.map.setView(latlng, HnHMaxZoom);
 
           this.$router.push({path: `/character/${value}`});
           this.autoMode = true;
@@ -693,7 +709,7 @@ export default {
               this.changeMap(map.ID);
 
             if (!value.marker) value.add(this);
-            this.map.setView(value.marker.getLatLng(), HnHMaxZoom - Math.floor(HnHMaxZoom - HnHMinZoom) / 2);
+            this.map.setView(value.marker.getLatLng(), HnHMaxZoom);
             this.trackingCharacterId = -1;
             return;
           }
@@ -712,7 +728,7 @@ export default {
               this.changeMap(map.ID);
 
             if (!value.marker) value.add(this);
-            this.map.setView(value.marker.getLatLng(), HnHMaxZoom - Math.floor(HnHMaxZoom - HnHMinZoom) / 2);
+            this.map.setView(value.marker.getLatLng(), HnHMaxZoom);
             this.trackingCharacterId = -1;
             return;
           }
@@ -731,7 +747,7 @@ export default {
               this.changeMap(map.ID);
 
             if (!value.marker) value.add(this);
-            this.map.setView(value.marker.getLatLng(), HnHMaxZoom - Math.floor(HnHMaxZoom - HnHMinZoom) / 2);
+            this.map.setView(value.marker.getLatLng(), HnHMaxZoom);
             this.trackingCharacterId = -1;
             return;
           }
@@ -749,7 +765,7 @@ export default {
               this.changeMap(map.ID);
 
             if (!value.marker) value.add(this);
-            this.map.setView(value.marker.getLatLng(), HnHMaxZoom - Math.floor(HnHMaxZoom - HnHMinZoom) / 2);
+            this.map.setView(value.marker.getLatLng(), HnHMaxZoom);
             this.trackingCharacterId = -1;
             return;
           }
@@ -1210,6 +1226,7 @@ export default {
       this.characters.update(charactersData.map(it => {
             let ch = new Character(it);
             ch.tstate = this.showPlayerTooltips;
+            ch.hideCharacterNames = this.hideCharacterNames;
             return ch;
           }),
           (character) => { // Add
