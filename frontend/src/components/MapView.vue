@@ -42,28 +42,6 @@
       <v-divider></v-divider>
 
       <v-list dense v-if="!mini">
-        <!-- HIDE GRID -->
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn width="100%" @click="showGridCoordinates = !showGridCoordinates">
-                {{ (!showGridCoordinates) ? 'Show' : 'Hide' }} grid coordinates
-              </v-btn>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <!-- ZOOM -->
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn width="100%" @click="zoomOut">
-                Zoom Out
-              </v-btn>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
         <!-- TO MAP -->
         <v-list-item>
           <v-list-item-content>
@@ -86,76 +64,18 @@
           </v-list-item-content>
         </v-list-item>
 
-        <!-- HIDE MARKER -->
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showMarkers = !showMarkers">
-                {{ (!showMarkers) ? 'Show' : 'Hide' }} Markers
-              </v-btn>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <!-- TO ANY MARKER -->
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <!--              <label class="title">Markers</label>-->
-              <v-autocomplete return-object outlined dense :items="otherMarks" v-model="selectedMarker"
-                              placeholder="Select Marker">
-
-                <template v-slot:item="data">
-                  <img class="mr-2" style="width:24px;height: 24px;" :src="data.item.image + '.png'"/>
-                  {{ data.item.name }}
-                </template>
-              </v-autocomplete>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showThingwalls = !showThingwalls">
-                {{ (!showThingwalls) ? 'Show' : 'Hide' }} Thingwalls
-              </v-btn>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
         <v-list-item>
           <v-list-item-content>
             <v-list-item-title>
               <!--              <label class="title">Thingwalls</label>-->
               <v-autocomplete return-object outlined dense :items="thingMarks" v-model="selectedThing"
-                              placeholder="Select Marker">
+                              placeholder="Select Thingwall">
 
                 <template v-slot:item="data">
                   <img class="mr-2" style="width:24px;height: 24px;" :src="data.item.image + '.png'"/>
                   {{ data.item.name }}
                 </template>
               </v-autocomplete>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showThingwallTooltips = !showThingwallTooltips">
-                {{ (!showThingwallTooltips) ? 'Show' : 'Hide' }} Thingwall Tooltips
-              </v-btn>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showQuests = !showQuests">
-                {{ (!showQuests) ? 'Show' : 'Hide' }} Quest Givers
-              </v-btn>
             </v-list-item-title>
           </v-list-item-content>
         </v-list-item>
@@ -165,53 +85,13 @@
             <v-list-item-title>
               <!--              <label class="title">Quest Givers</label>-->
               <v-autocomplete return-object outlined dense :items="questMarks" v-model="selectedQuest"
-                              placeholder="Select Marker">
+                              placeholder="Select NPC">
 
                 <template v-slot:item="data">
                   <img class="mr-2" style="width:24px;height: 24px;" :src="data.item.image + '.png'"/>
                   {{ data.item.name }}
                 </template>
               </v-autocomplete>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showQuestTooltips = !showQuestTooltips">
-                {{ (!showQuestTooltips) ? 'Show' : 'Hide' }} Quest Tooltips
-              </v-btn>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showPlayers = !showPlayers">
-                {{ (!showPlayers) ? 'Show' : 'Hide' }} Players
-              </v-btn>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showRoads = !showRoads">
-                {{ (!showRoads) ? 'Show' : 'Hide' }} Roads
-              </v-btn>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showCustomMarkers = !showCustomMarkers">
-                {{ (!showCustomMarkers) ? 'Show' : 'Hide' }} Custom Markers
-              </v-btn>
             </v-list-item-title>
           </v-list-item-content>
         </v-list-item>
@@ -232,16 +112,6 @@
           </v-list-item-content>
         </v-list-item>
 
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showPlayerTooltips = !showPlayerTooltips">
-                {{ (!showPlayerTooltips) ? 'Show' : 'Hide' }} Players Names
-              </v-btn>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
         <!-- TO PLAYER -->
         <v-list-item>
           <v-list-item-content>
@@ -258,10 +128,78 @@
         <v-list-item v-if="auths.includes('admin') || auths.includes('writer')">
           <v-list-item-content>
             <v-list-item-title>
-              <v-btn class="short-btn" width="100%" :color="drawingRoad ? 'primary' : undefined"
+              <v-btn class="draw-road-btn" width="100%" x-large :color="drawingRoad ? 'primary' : undefined"
                      @click="toggleDrawRoad">
                 {{ drawingRoad ? 'Cancel Draw Road' : 'Draw Road' }}
               </v-btn>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
+        <!-- HIDE GRID -->
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <toggle-button v-model="showGridCoordinates" label="Grid Coordinates"></toggle-button>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <!-- HIDE MARKER -->
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <toggle-button v-model="showMarkers" label="Natural Markers"></toggle-button>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <toggle-button v-model="showThingwalls" label="Thingwalls"></toggle-button>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <toggle-button v-model="showQuests" label="Quest Givers"></toggle-button>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <toggle-button v-model="showPlayers" label="Players"></toggle-button>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <toggle-button v-model="showRoads" label="Roads"></toggle-button>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <toggle-button v-model="showCustomMarkers" label="Custom Markers"></toggle-button>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-list-item>
+          <v-list-item-content>
+            <v-list-item-title>
+              <toggle-button v-model="showPlayerTooltips" label="Players Names"></toggle-button>
             </v-list-item-title>
           </v-list-item-content>
         </v-list-item>
@@ -270,9 +208,7 @@
         <v-list-item>
           <v-list-item-content>
             <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="showClutter = !showClutter">
-                {{ (!showClutter) ? 'Show' : 'Hide' }} Clutter
-              </v-btn>
+              <toggle-button v-model="showClutter" label="Clutter"></toggle-button>
             </v-list-item-title>
           </v-list-item-content>
         </v-list-item>
@@ -281,9 +217,7 @@
         <v-list-item>
           <v-list-item-content>
             <v-list-item-title>
-              <v-btn class="short-btn" width="100%" @click="hideCharacterNames = !hideCharacterNames">
-                {{ (!hideCharacterNames) ? 'Hide' : 'Show' }} Character Names
-              </v-btn>
+              <toggle-button v-model="hideCharacterNames" label="Hide Character Names"></toggle-button>
             </v-list-item-title>
           </v-list-item-content>
         </v-list-item>
@@ -425,6 +359,7 @@ import {CustomMarker} from "../data/CustomMarker";
 import {UniqueList} from "../data/UniqueList";
 import {Character} from "../data/Character";
 import VueContext from 'vue-context';
+import ToggleButton from './ToggleButton.vue';
 
 const CLUTTER_TYPES = ["burrow", "clamreef", "flintwash", "spawningbed"];
 
@@ -433,6 +368,7 @@ export default {
   components: {
     ModelSelect,
     VueContext,
+    ToggleButton,
   },
   data: function () {
     return {
@@ -440,9 +376,7 @@ export default {
       showGridCoordinates: false,
       showMarkers: true,
       showQuests: true,
-      showQuestTooltips: true,
       showThingwalls: true,
-      showThingwallTooltips: true,
       showPlayers: true,
       showPlayerTooltips: true,
       showRoads: true,
@@ -477,7 +411,6 @@ export default {
       players: [],
       maps: [],
       selectedMap: null,
-      selectedMarker: null,
       selectedCustomMarker: null,
       selectedQuest: null,
       selectedThing: null,
@@ -518,7 +451,7 @@ export default {
       } else {
         this.thingMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => {
           it.add(this);
-          it.tooltip(this.showThingwallTooltips);
+          it.tooltip(true);
         });
       }
     },
@@ -529,7 +462,7 @@ export default {
       } else {
         this.questMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => {
           it.add(this);
-          it.tooltip(this.showQuestTooltips);
+          it.tooltip(true);
         });
       }
     },
@@ -567,14 +500,6 @@ export default {
       } else {
         this.customMarkers.getElements().filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => it.add(this));
       }
-    },
-    showThingwallTooltips(value) {
-      console.log("showThingwallTooltips", value);
-      this.thingMarks.forEach(it => it.tooltip(value));
-    },
-    showQuestTooltips(value) {
-      console.log("showQuestTooltips", value);
-      this.questMarks.forEach(it => it.tooltip(value));
     },
     showPlayerTooltips(value) {
       console.log("showPlayerTooltips", value);
@@ -626,14 +551,14 @@ export default {
           this.thingMarks.forEach(it => it.remove(this));
           this.thingMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => {
             it.add(this);
-            it.tooltip(this.showThingwallTooltips);
+            it.tooltip(true);
           });
         }
         if (this.showQuests) {
           this.questMarks.forEach(it => it.remove(this));
           this.questMarks.filter(it => it.map === this.mapid || it.map === this.overlayLayer.map).forEach(it => {
             it.add(this);
-            it.tooltip(this.showQuestTooltips);
+            it.tooltip(true);
           });
         }
         if (this.showClutter) {
@@ -666,7 +591,7 @@ export default {
           this.thingMarks.forEach(it => it.remove(this));
           this.thingMarks.filter(it => it.map === this.mapid).forEach(it => {
             it.add(this);
-            it.tooltip(this.showThingwallTooltips);
+            it.tooltip(true);
           });
         }
         if (this.showQuests) {
@@ -695,25 +620,6 @@ export default {
           this.customMarkers.getElements().forEach(it => it.remove(this));
           this.customMarkers.getElements().filter(it => it.map === this.mapid).forEach(it => it.add(this));
         }
-      }
-    },
-    selectedMarker(value) {
-      //selectedMap
-      console.log('selectedMarker', value);
-      if (value) {
-        let markerMapId = value.map;
-
-        this.maps.forEach((map) => {
-          if (markerMapId === map.ID) {
-            if (this.mapid !== map.ID)
-              this.changeMap(map.ID);
-
-            if (!value.marker) value.add(this);
-            this.map.setView(value.marker.getLatLng(), HnHMaxZoom);
-            this.trackingCharacterId = -1;
-            return;
-          }
-        })
       }
     },
     selectedQuest(value) {
@@ -1028,9 +934,9 @@ export default {
       this.markers.update(markersData.map(it => {
             let m = new Marker(it);
             if (m.type === "thingwall")
-              m.tstate = this.showThingwallTooltips;
+              m.tstate = true;
             else if (m.type === "quest")
-              m.tstate = this.showQuestTooltips;
+              m.tstate = true;
             else
               m.tstate = false;
             return m;
@@ -1305,10 +1211,6 @@ export default {
       osc.start();
       osc.stop(ctx.currentTime + 0.4);
     },
-    zoomOut() {
-      this.trackingCharacterId = -1;
-      this.map.setView([0, 0], HnHMinZoom);
-    },
     wipeTile(data) {
       this.$http.get(`${API_ENDPOINT}/admin/wipeTile`, {params: {...data.coords, map: this.mapid}});
     },
@@ -1349,14 +1251,14 @@ export default {
           this.thingMarks.forEach(it => it.remove(this));
           this.thingMarks.filter(it => it.map === this.mapid).forEach(it => {
             it.add(this);
-            it.tooltip(this.showThingwallTooltips);
+            it.tooltip(true);
           });
         }
         if (this.showQuests) {
           this.questMarks.forEach(it => it.remove(this));
           this.questMarks.filter(it => it.map === this.mapid).forEach(it => {
             it.add(this);
-            it.tooltip(this.showQuestTooltips);
+            it.tooltip(true);
           });
         }
         if (this.showClutter) {
@@ -1511,6 +1413,13 @@ export default {
 .short-btn {
   min-height: auto !important;
   height: auto !important;
+  text-transform: none !important;
+}
+
+.draw-road-btn {
+  height: 56px !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
   text-transform: none !important;
 }
 
