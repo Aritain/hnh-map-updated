@@ -212,6 +212,124 @@ func (m *Map) wipe(rw http.ResponseWriter, req *http.Request) {
 	http.Redirect(rw, req, "/admin/", 302)
 }
 
+func (m *Map) deleteHiddenMaps(rw http.ResponseWriter, req *http.Request) {
+	s := m.getSession(req)
+	if s == nil || !s.Auths.Has(AUTH_ADMIN) {
+		http.Redirect(rw, req, "/", 302)
+		return
+	}
+
+	err := m.db.Update(func(tx *bbolt.Tx) error {
+		mapsB := tx.Bucket([]byte("maps"))
+		if mapsB == nil {
+			return nil
+		}
+		hidden := map[int]struct{}{}
+		mapsB.ForEach(func(k, v []byte) error {
+			mi := MapInfo{}
+			json.Unmarshal(v, &mi)
+			if mi.Hidden {
+				if id, err := strconv.Atoi(string(k)); err == nil {
+					hidden[id] = struct{}{}
+				}
+			}
+			return nil
+		})
+		if len(hidden) == 0 {
+			return nil
+		}
+
+		deletedGrids := map[string]struct{}{}
+		if grids := tx.Bucket([]byte("grids")); grids != nil {
+			gridKeys := [][]byte{}
+			grids.ForEach(func(k, v []byte) error {
+				gd := GridData{}
+				json.Unmarshal(v, &gd)
+				if _, ok := hidden[gd.Map]; ok {
+					gridKeys = append(gridKeys, k)
+					deletedGrids[gd.ID] = struct{}{}
+				}
+				return nil
+			})
+			for _, k := range gridKeys {
+				grids.Delete(k)
+			}
+		}
+
+		if tiles := tx.Bucket([]byte("tiles")); tiles != nil {
+			for id := range hidden {
+				tiles.DeleteBucket([]byte(strconv.Itoa(id)))
+			}
+		}
+
+		if markersB := tx.Bucket([]byte("markers")); markersB != nil {
+			grid := markersB.Bucket([]byte("grid"))
+			idB := markersB.Bucket([]byte("id"))
+			if grid != nil {
+				markerKeys := [][]byte{}
+				idKeys := [][]byte{}
+				grid.ForEach(func(k, v []byte) error {
+					mk := Marker{}
+					json.Unmarshal(v, &mk)
+					if _, ok := deletedGrids[mk.GridID]; ok {
+						markerKeys = append(markerKeys, k)
+						idKeys = append(idKeys, []byte(strconv.Itoa(mk.ID)))
+					}
+					return nil
+				})
+				for _, k := range markerKeys {
+					grid.Delete(k)
+				}
+				if idB != nil {
+					for _, k := range idKeys {
+						idB.Delete(k)
+					}
+				}
+			}
+		}
+
+		if roads := tx.Bucket([]byte("roads")); roads != nil {
+			roadKeys := [][]byte{}
+			roads.ForEach(func(k, v []byte) error {
+				r := Road{}
+				json.Unmarshal(v, &r)
+				if _, ok := hidden[r.Map]; ok {
+					roadKeys = append(roadKeys, k)
+				}
+				return nil
+			})
+			for _, k := range roadKeys {
+				roads.Delete(k)
+			}
+		}
+
+		if customMarkers := tx.Bucket([]byte("customMarkers")); customMarkers != nil {
+			cmKeys := [][]byte{}
+			customMarkers.ForEach(func(k, v []byte) error {
+				cm := CustomMarker{}
+				json.Unmarshal(v, &cm)
+				if _, ok := hidden[cm.Map]; ok {
+					cmKeys = append(cmKeys, k)
+				}
+				return nil
+			})
+			for _, k := range cmKeys {
+				customMarkers.Delete(k)
+			}
+		}
+
+		for id := range hidden {
+			mapsB.Delete([]byte(strconv.Itoa(id)))
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Println(err)
+	}
+	http.Redirect(rw, req, "/admin/", 302)
+}
+
 func (m *Map) setPrefix(rw http.ResponseWriter, req *http.Request) {
 	s := m.getSession(req)
 	if s == nil || !s.Auths.Has(AUTH_ADMIN) {

@@ -51,6 +51,20 @@
                     {{end}}
                 </tbody>
             </table>
+            <a class="waves-effect waves-light red btn modal-trigger" href="#deleteHiddenMaps">Delete hidden maps</a>
+            <div id="deleteHiddenMaps" class="modal">
+                <div class="modal-content">
+                <h4>Delete hidden maps</h4>
+                <p>This will permanently delete every map layer currently marked Hidden, along with its grids, tiles, markers, roads, and custom markers. Unhidden maps are untouched.</p>
+                <h5>THIS CANNOT BE UNDONE!</h5>
+                </div>
+                <div class="modal-footer">
+                <a href="#!" class="modal-close waves-effect waves-light green btn">Cancel</a>
+                <a href="/admin/deleteHiddenMaps" class="waves-effect waves-light red btn">DELETE</a>
+                </div>
+            </div>
+            <br>
+            <br>
             <div class="card">
                 <div class="card-content">
                     <h5>Default maps to hidden</h5>

@@ -111,6 +111,7 @@ func main() {
 	http.HandleFunc("/admin/user", m.adminUser)
 	http.HandleFunc("/admin/deleteUser", m.deleteUser)
 	http.HandleFunc("/admin/wipe", m.wipe)
+	http.HandleFunc("/admin/deleteHiddenMaps", m.deleteHiddenMaps)
 	http.HandleFunc("/admin/setPrefix", m.setPrefix)
 	http.HandleFunc("/admin/setDefaultHide", m.setDefaultHide)
 	http.HandleFunc("/admin/setTitle", m.setTitle)

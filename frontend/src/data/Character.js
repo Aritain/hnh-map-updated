@@ -14,6 +14,7 @@ export class Character {
         this.onClick = null;
         this.tstate = false;
         this.hideCharacterNames = false;
+        this.showPlayers = true;
     }
 
     getId() {
@@ -34,7 +35,7 @@ export class Character {
     }
 
     add(mapview) {
-        if (this.map === mapview.mapid) {
+        if (this.showPlayers && this.map === mapview.mapid) {
             let position = mapview.map.unproject([this.position.x, this.position.y], HnHMaxZoom);
             this.marker = L.marker(position, {icon: PlayerPulseIcon, riseOnHover: true/*title: this.name*/});
             this.marker.marker = this;
@@ -64,7 +65,8 @@ export class Character {
         }
         this.map = updated.map;
         this.position = updated.position;
-        if (!this.marker && this.map === mapview.mapid) {
+        this.showPlayers = updated.showPlayers;
+        if (!this.marker && this.showPlayers && this.map === mapview.mapid) {
             this.add(mapview);
         }
         if (this.marker) {

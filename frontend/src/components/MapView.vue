@@ -217,7 +217,7 @@
         <v-list-item>
           <v-list-item-content>
             <v-list-item-title>
-              <toggle-button v-model="hideCharacterNames" label="Hide Character Names"></toggle-button>
+              <toggle-button v-model="hideCharacterNames" label="Character Names"></toggle-button>
             </v-list-item-title>
           </v-list-item-content>
         </v-list-item>
@@ -1133,6 +1133,7 @@ export default {
             let ch = new Character(it);
             ch.tstate = this.showPlayerTooltips;
             ch.hideCharacterNames = this.hideCharacterNames;
+            ch.showPlayers = this.showPlayers;
             return ch;
           }),
           (character) => { // Add

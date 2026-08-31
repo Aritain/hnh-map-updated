@@ -17,6 +17,8 @@ Set the prefix (prepended to tokens, e.g. `http://example.com`) to make client c
 
 The first client to connect sets the 0,0 grid. Wipe data in the admin portal to reset it.
 
+As of now this map is only tested with [Hurricane](github.com/Nightdawg/Hurricane) client. Although it should work on most clients as well
+
 ### Roles
 
 - `map`: view the map
@@ -39,3 +41,4 @@ Changes on top of the upstream fork:
 - Markers and quest tooltips visible by default
 - Closer zoom
 - Better icon handling while zooming
+- Admin: "Delete hidden maps" button, cascade-deletes a hidden map layer's grids, tiles, markers, roads, and custom markers
