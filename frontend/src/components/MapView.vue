@@ -361,7 +361,7 @@ import {Character} from "../data/Character";
 import VueContext from 'vue-context';
 import ToggleButton from './ToggleButton.vue';
 
-const CLUTTER_TYPES = ["burrow", "clamreef", "flintwash", "spawningbed"];
+const CLUTTER_TYPES = ["burrow", "clamreef", "flintwash", "spawningbed", "badgersett", "foxhole", "wolfslair"];
 
 export default {
   name: "MapView",
